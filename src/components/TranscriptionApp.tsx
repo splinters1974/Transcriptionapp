@@ -21,6 +21,7 @@ export default function TranscriptionApp() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   const hasOutput = summary !== null;
 
@@ -35,7 +36,7 @@ export default function TranscriptionApp() {
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcription, depth, includeEmail: true }),
+        body: JSON.stringify({ transcription, depth, includeEmail: false }),
       });
       const data = await res.json();
 
@@ -72,12 +73,39 @@ export default function TranscriptionApp() {
     window.location.href = buildOutlookMailtoUrl(emailSummary);
   };
 
+  const handleGenerateEmail = async () => {
+    if (!transcription.trim()) return;
+    setIsEmailLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcription, depth, includeEmail: true, emailOnly: true }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setError(data.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
+
+      setEmailSummary(data.emailSummary ?? null);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsEmailLoading(false);
+    }
+  };
+
   const handleReset = () => {
     setTranscription('');
     setSummary(null);
     setEmailSummary(null);
     setError(null);
     setActiveTab('summary');
+    setIsEmailLoading(false);
   };
 
   return (
@@ -182,9 +210,25 @@ export default function TranscriptionApp() {
                   onOpenOutlook={handleOpenOutlook}
                 />
               ) : (
-                <p className="text-sm text-slate-400 text-center py-6">
-                  Email summary could not be generated. Try regenerating.
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-sm text-slate-500 mb-4">
+                    Generate a professional stakeholder email based on this transcription.
+                  </p>
+                  <button
+                    onClick={handleGenerateEmail}
+                    disabled={isEmailLoading}
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors"
+                  >
+                    {isEmailLoading ? (
+                      <>
+                        <LoadingSpinner size={14} />
+                        Generating email...
+                      </>
+                    ) : (
+                      'Generate Email'
+                    )}
+                  </button>
+                </div>
               )
             )}
           </div>

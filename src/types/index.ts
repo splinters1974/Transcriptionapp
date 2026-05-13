@@ -4,6 +4,7 @@ export interface SummarizeRequest {
   transcription: string;
   depth: SummaryDepth;
   includeEmail: boolean;
+  emailOnly?: boolean;
 }
 
 export interface EmailSummary {
@@ -12,7 +13,7 @@ export interface EmailSummary {
 }
 
 export interface SummarizeResponse {
-  summary: string;
+  summary?: string;
   emailSummary?: EmailSummary;
   error?: string;
 }
